@@ -2,27 +2,33 @@
 
 Yet another git status checker, in python. Because none of the bash-based ones were working on my Windows box with git-bash...
 
+## Installation
+
+`pip install git+https://github.com/scholer/git_status_checker.git` will place `git-status-checker` in a python executables folder that should be in your path.
+
+You can also install this by cloning this repository and installing it using `pip install .` in the top level directory of the repository.
 
 ## What it does
 
-This is just a script that
-(1) finds git repositories given a list of base directories, and
-(2) checks if any of the repositories have uncommitted changes or needs to be updated with origin, i.e. if it has changes that have not been pushed, or if origin has changes that have not been pulled.
+* Finds git repositories given a list of base directories
+* Checks if any of the repositories have uncommitted changes or need to be updated with origin, i.e. if it has changes that have not been pushed, or if origin has changes that have not been pulled.
 
 
 ## Usage
 
-1. Produce a list of places (base-dirs) where you have git repositories and save it to a file.
-   It might look something like:
-    ~/Dev/src-repos
-    ~/Documents/Projects
-    ~/Documents/Personal_stuff/My_project_A
+1. Produce a list of places (base-dirs) where you have git repositories and save it to a file. It might look something like below...
+   ```
+   ~/Dev/src-repos
+   ~/Documents/Projects
+   ~/Documents/Personal_stuff/My_project_A
+    ```
 
-2. Then run git_status_checker.py with:
-    python git_status_checker.py -f <file-with-list-of-basedirs>
+2. Run `git_status_checker -f <file-with-list-of-basedirs>`.
 
 The script will walk each base-dir, searching for git repositories, then print the status for all
 repositories with outstanding commits or that can be pushed or fetched to/from origin.
+
+### git-status-checker help message 
 
 ```console
 $ git-status-checker -h
@@ -78,9 +84,9 @@ optional arguments:
 ```
 
 
-## Variations
+### Other usage options
 
-The script provides for a range of choices on how you use it:
+The script provides for a range of choices based on how you use it:
 * You can provide base-dirs directly at the command line
 * You can use multiple base-dirs-files.
 * You can provide a `--config` file with command line args (if you don't want to specify them on the command line).
