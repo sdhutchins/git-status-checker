@@ -143,7 +143,7 @@ def process_args(argns=None, argv=None):
     # On windows, we have to expand glob patterns manually:
     file_pattern_matches = [(pattern, glob.glob(os.path.expanduser(pattern))) for pattern in args['basedirs']]
     for pattern in (pattern for pattern, res in file_pattern_matches if len(res) == 0):
-        print("WARNING: File/pattern '%s' does not match any files." % pattern)
+        logger.warning("WARNING: File/pattern '%s' does not match any files." % pattern)
     args['basedirs'] = [fname for pattern, res in file_pattern_matches for fname in res]
 
     if args.get("ignorefile"):
@@ -251,7 +251,7 @@ def check_repo_status(gitrepo, fetch=False, ignore_untracked=False):
         status_output = subprocess.check_output(["git", "status"], cwd=gitrepo)\
                                   .decode().strip().split("\n")
     except subprocess.CalledProcessError as e:
-        print("Warning: failed to git status on %s: %s", gitrepo, e)
+        logger.warning("Warning: failed to git status on %s: %s", gitrepo, e)
         return (None, None, None)
     #             False if "up-to-date" in status_output else status_output:
     # Examples:
@@ -296,17 +296,14 @@ def print_report(gitrepo, commitstat, pushstat, fetchstat):
     if pushstat:
         print("--", pushstat)
     if fetchstat:
-        print("Outstanding fetches from origin:", fetchstat)
+        logger.info("Outstanding fetches from origin:", fetchstat)
     if commitstat:
-        print("-- outstanding commits: --")
-        print("\n".join(commitstat))
+        logger.info("Outstanding commits: \n%s" % commitstat)
 
 
 def main(argv=None):
     """ Main driver """
     args = process_args(None, argv)
-    logging.basicConfig(level=args.get("loglevel", 30),
-                        format="%(asctime)s %(levelname)-5s %(name)12s:%(lineno)-4s%(funcName)16s() %(message)s")
     if args['basedirs'] is None:
         args['basedirs'] = []
     if args['dirfile']:
@@ -316,16 +313,15 @@ def main(argv=None):
     ignoreglobs = read_ignorefile(args['ignorefile'])
 
     if not args['basedirs']:
-        logger.info("Using current directory as basedir: %s", os.path.abspath("."))
         args['basedirs'] = ["."]
-    print("Basedirs:", ", ".join(os.path.abspath(path) for path in args['basedirs']))
+    logger.info("Basedirs:", ", ".join(os.path.abspath(path) for path in args['basedirs']))
     exit_status = 0     # exit 0 = "No dirty repositories."
 
     gitrepos = scan_gitrepos(args['basedirs'], ignoreglobs=ignoreglobs,
                              followlinks=args.get("followlinks", False))
 
     if not gitrepos:
-        print("No git repositories found!")
+        logger.error("No git repositories found!")
         sys.exit(127)   # exit 127 = "Error: No repositories found."
 
     for gitrepo in gitrepos:
@@ -337,7 +333,7 @@ def main(argv=None):
             print_report(gitrepo, commitstat, pushstat, fetchstat)
             exit_status = 1  # exit 1 = "dirty repositories found."
     if exit_status > 0 and args.get('wait'):
-        input("\nPress Enter to continue... ")
+        input("\nPress ENTER to continue... ")
     sys.exit(exit_status)
 
 
