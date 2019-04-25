@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #    Copyright 2015 Rasmus Scholer Sorensen, rasmusscholer@gmail.com
 #
+#    Edited by Shaurita D. Hutchins
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
@@ -45,7 +46,7 @@ from fnmatch import fnmatch
 # from collections import defaultdict
 # from datetime import datetime, timedelta
 import logging
-logger = logging.getLogger(__name__)
+from logzero import logger
 
 
 def parse_args(argv=None):
@@ -62,7 +63,7 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="Git status checker script.")
     parser.add_argument("--verbose", "-v", action="count", help="Increase verbosity.")
     parser.add_argument("--testing", action="store_true", help="Run app in simple test mode.")
-    parser.add_argument("--loglevel", default=logging.WARNING, help="Set logging output threshold level.")
+    parser.add_argument("--loglevel", default=logging.INFO, help="Set logging output threshold level.")
     # parser.add_argument("--profile", "-p", action="store_true", help="Profile app execution.")
     # parser.add_argument("--print-profile", "-P", action="store_true", help="Print profiling statistics.")
     # parser.add_argument("--profile-outputfn", default="scaffold_rotation.profile",

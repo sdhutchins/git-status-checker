@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 setup(
     name='git-status-checker',
     description='Check git repositories for uncommitted or unpushed changes.',
-    version='1.1.1',  # also update __version__ in ./git_status_checker/__init__.py
+    version='1.1.2',  # also update __version__ in ./git_status_checker/__init__.py
     url='https://github.com/scholer/git_status_checker',  # project home page
     # project_urls={  # Additional, arbitrary URLs
     #     "Bug Tracker": "https://github.com/scholer/git_status_checker/issues",
@@ -43,6 +43,7 @@ setup(
     },
     install_requires=[
         'pyyaml',
+        'logzero',
     ],
     keywords=[
         "Git", "Version control", "Development tools",
