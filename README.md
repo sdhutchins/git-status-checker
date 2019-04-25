@@ -4,7 +4,7 @@ Yet another git status checker, in python. Because none of the bash-based ones w
 
 ## Installation
 
-`pip install git+https://github.com/scholer/git_status_checker.git` will place `git-status-checker` in a python executables folder that should be in your path.
+`pip install git+https://github.com/sdhutchins/git_status_checker.git` will place `git-status-checker` in a python executables folder that should be in your path.
 
 You can also install this by cloning this repository and installing it using `pip install .` in the top level directory of the repository.
 
@@ -28,7 +28,7 @@ You can also install this by cloning this repository and installing it using `pi
 The script will walk each base-dir, searching for git repositories, then print the status for all
 repositories with outstanding commits or that can be pushed or fetched to/from origin.
 
-### git-status-checker help message 
+### git-status-checker help message
 
 ```console
 $ git-status-checker -h
