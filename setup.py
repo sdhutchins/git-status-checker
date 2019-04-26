@@ -18,57 +18,27 @@ from setuptools import setup, find_packages
 setup(
     name='git-status-checker',
     description='Check git repositories for uncommitted or unpushed changes.',
-    version='1.1.2',  # also update __version__ in ./git_status_checker/__init__.py
-    url='https://github.com/scholer/git_status_checker',  # project home page
-    # project_urls={  # Additional, arbitrary URLs
-    #     "Bug Tracker": "https://github.com/scholer/git_status_checker/issues",
-    #     "Documentation": "https://docs.example.com/HelloWorld/",
-    #     "Source Code": https://github.com/scholer/git_status_checker",
-    # },
-    download_url='https://github.com/scholer/git_status_checker/archive/master.zip',  # Update for each new version
+    long_description=open('README.md').read(),
+    version='1.1.2',
+    url='https://github.com/vallenderlab/git-status-checker',
     license='GNU General Public License v3 (GPLv3)',
-    author='Rasmus Scholer Sorensen',
-    author_email='rasmusscholer@gmail.com',
-    # setuptools.find_packages() is generally preferred over manual listing.
-    packages=find_packages(exclude=['bin', 'docs', 'tests']),
-    # Use MANIFEST.in to specify which non-package files to include in the distribution
-    # package_data={'git_status_checker': ['data/*.txt']}  # Data to include for each package.
-    # include_package_data=True,  # ONLY for data under revision control? Or maybe also MANIFEST.in?
+    author='Rasmus Scholer Sorensen <rasmusscholer@gmail.com>, Shaurita Hutchins <sdhutchins@outlook.com>',
+    packages=find_packages(exclude=['docs', 'tests']),
     entry_points={
         'console_scripts': [
-            # console_scripts should all be lower-case, else you may get an error when uninstalling:
             'git-status-checker=git_status_checker.git_status_checker:main',
         ],
-        # 'gui_scripts': []
     },
-    install_requires=[
-        'pyyaml',
-        'logzero',
-    ],
-    keywords=[
-        "Git", "Version control", "Development tools",
-    ],
+    install_requires=['pyyaml','logzero',],
+    keywords=["Git", "Version control", "Development tools",],
     classifiers=[
-        # How mature is this project? Common values are
-        #   3 - Alpha
-        #   4 - Beta
-        #   5 - Production/Stable
-        'Development Status :: 4 - Beta',
-
-            'Environment :: Console',
-
-        # Indicate who your project is intended for
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Intended Audience :: End Users/Desktop',
-
         'Topic :: Software Development :: Build Tools',
-
-        # Pick your license as you wish (should match "license" above)
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
-
-        # Specify the Python versions you support here. In particular, ensure
-        # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
@@ -80,4 +50,9 @@ setup(
         'Operating System :: Microsoft',
         'Operating System :: POSIX :: Linux',
     ],
+    project_urls={
+        'Documentation': '',
+        'Bug Reports': 'https://github.com/vallenderlab/git-status-checker/issues',
+        'Source': 'https://github.com/vallenderlab/git-status-checker',
+    },
 )
