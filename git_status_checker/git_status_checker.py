@@ -45,8 +45,14 @@ import subprocess
 from fnmatch import fnmatch
 # from collections import defaultdict
 # from datetime import datetime, timedelta
-import logging
-from logzero import logger
+from logzero import LogFormatter, setup_logger, logging
+
+
+_log_format = ("%(color)s[%(levelname)s | %(name)s]:%(end_color)s %(message)s")
+_formatter = LogFormatter(fmt=_log_format)
+
+logger = setup_logger(name="GIT-STATUS-CHECKER", level=logging.INFO,
+                      formatter=_formatter)
 
 
 def parse_args(argv=None):
@@ -214,6 +220,8 @@ def scan_gitrepos(basedirs, ignoreglobs=None, followlinks=False):
     gitrepos = []
     # first = 5  # True
     for basedir in basedirs:
+        if basedir == ".":
+            basedir = os.getcwd()
         basedir_gitrepos = [] # make a list for each basedir (to see if any basedir are void of git repos)
         logger.debug("Walking basedir %s", basedir)
         for dirpath, dirnames, filenames in os.walk(basedir, followlinks=followlinks):
@@ -233,7 +241,7 @@ def scan_gitrepos(basedirs, ignoreglobs=None, followlinks=False):
                 del dirnames[:]
         logger.info("%s git repositories found for basedir %s", len(basedir_gitrepos), basedir)
         gitrepos += basedir_gitrepos
-    logger.info("%s git repositories found for all (%s) basedirs", len(gitrepos), len(basedirs))
+    logger.info("%s git repositories found for all (%s) basedirs\n", len(gitrepos), len(basedirs))
     return gitrepos
 
 
@@ -291,14 +299,19 @@ def check_repo_status(gitrepo, fetch=False, ignore_untracked=False):
 
 
 def print_report(gitrepo, commitstat, pushstat, fetchstat):
-    print("\n"+gitrepo, "has outstanding", ", ".join(
-            elem for elem in (commitstat and "commits", pushstat and "pushes", fetchstat and "fetches") if elem), ":")
+    logger.info("Git repository: %s" % gitrepo)
     if pushstat:
-        print("--", pushstat)
+        logger.info(pushstat)
     if fetchstat:
-        logger.info("Outstanding fetches from origin:", fetchstat)
+        logger.info("Outstanding fetches from origin: %s" % fetchstat)
     if commitstat:
-        logger.info("Outstanding commits: \n%s" % commitstat)
+        logger.warning("Outstanding commits:")
+        if len(commitstat) > 1:
+            for commit in commitstat:
+                logger.warning(commit)
+        else:
+            logger.warning("".join(commitstat))
+    print("\n")
 
 
 def main(argv=None):
@@ -314,7 +327,12 @@ def main(argv=None):
 
     if not args['basedirs']:
         args['basedirs'] = ["."]
-    logger.info("Basedirs:", ", ".join(os.path.abspath(path) for path in args['basedirs']))
+
+    dirs = [os.path.abspath(path) for path in args['basedirs']]
+    if len(dirs) > 1:
+        logger.info("Basedirs: %s" % dirs)
+    else:
+        logger.info("Basedir: %s" % dirs[0])
     exit_status = 0     # exit 0 = "No dirty repositories."
 
     gitrepos = scan_gitrepos(args['basedirs'], ignoreglobs=ignoreglobs,
