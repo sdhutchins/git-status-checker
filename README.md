@@ -1,6 +1,8 @@
-# git_status_checker
+# git-status-checker
 
 Yet another git status checker, in python. Because none of the bash-based ones were working on my Windows box with git-bash...
+
+Most of this was thankfully created by [@scholer](https://github.com/scholer). I've repurposed it a bit and beautified it.
 
 ## Installation
 
@@ -91,8 +93,7 @@ The script provides for a range of choices based on how you use it:
 * You can use multiple base-dirs-files.
 * You can provide a `--config` file with command line args (if you don't want to specify them on the command line).
 * You can use `--no-recursive` command line argument to disable recursive walking (it is then assumed that all "basedirs" are git repositories).
-* You can use the --ignorefile argument to provide glob filters to exclude directories from scanning.
-* If --ignorefile is not given but the current directory contains a file ".git_checker_ignore", this is used as ignorefile. (Similar to how git automatically ignores files in .gitignore).
+* If `--ignorefile` is not given but the current directory contains a file ".git_checker_ignore", this is used as ignorefile. (Similar to how git automatically ignores files in .gitignore).
 
 
 ## Notes:
@@ -102,4 +103,4 @@ non-git repositories/folders. (I have more git repositories than non-git folders
 I then simply run:
     `python <path to git_status_checker.py> --ignore-untracked ~/Dev/src-repos`
 
-Oh, and yes, you can use "~" and "*" to specify files, even on Windows.
+Oh, and yes, you can use `~` and `*` to specify files, even on Windows.

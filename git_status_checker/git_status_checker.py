@@ -315,7 +315,7 @@ def print_report(gitrepo, commitstat, pushstat, fetchstat):
 
 
 def main(argv=None):
-    """ Main driver """
+    """Main driver."""
     args = process_args(None, argv)
     if args['basedirs'] is None:
         args['basedirs'] = []
@@ -356,7 +356,7 @@ def main(argv=None):
 
 
 def test():
-    """ Primitive test. """
+    """Primitive test. """
     logging.basicConfig(level=10,  # , style="{")
                         format="%(asctime)s %(levelname)-5s %(name)20s:%(lineno)-4s%(funcName)20s() %(message)s")
     testbasedir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # package root dir
