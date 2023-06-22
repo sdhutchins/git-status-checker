@@ -6,7 +6,7 @@ Most of this was thankfully created by [@scholer](https://github.com/scholer). I
 
 ## Installation
 
-`pip install git+https://github.com/sdhutchins/git_status_checker.git` will place `git-status-checker` in a python executables folder that should be in your path.
+`pip install git+https://github.com/sdhutchins/git-status-checker.git` will place `git-status-checker` in a python executables folder that should be in your path.
 
 You can also install this by cloning this repository and installing it using `pip install .` in the top level directory of the repository.
 
