@@ -19,8 +19,8 @@ setup(
     name='git-status-checker',
     description='Check git repositories for uncommitted or unpushed changes.',
     long_description=open('README.md').read(),
-    version='1.1.2',
-    url='https://github.com/vallenderlab/git-status-checker',
+    version='1.1.3',
+    url='https://github.com/sdhutchins/git-status-checker',
     license='GNU General Public License v3 (GPLv3)',
     author='Rasmus Scholer Sorensen <rasmusscholer@gmail.com>, Shaurita Hutchins <sdhutchins@outlook.com>',
     packages=find_packages(exclude=['docs', 'tests']),
@@ -52,7 +52,7 @@ setup(
     ],
     project_urls={
         'Documentation': '',
-        'Bug Reports': 'https://github.com/vallenderlab/git-status-checker/issues',
-        'Source': 'https://github.com/vallenderlab/git-status-checker',
+        'Bug Reports': 'https://github.com/sdhutchins/git-status-checker/issues',
+        'Source': 'https://github.com/sdhutchins/git-status-checker',
     },
 )

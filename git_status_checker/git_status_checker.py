@@ -54,60 +54,31 @@ logger = setup_logger(name="GIT-STATUS-CHECKER", level=logging.INFO,
 
 
 def parse_args(argv=None):
-    """Parse command line arguments.
-
-    Args:
-        argv: list of command line arguments, e.g. sys.argv (default).
-
-    Returns:
-        parser and parsed args namespace (two-tuple).
-
-    """
+    """Parse command line arguments."""
 
     parser = argparse.ArgumentParser(description="Git status checker script.")
     parser.add_argument("--verbose", "-v", action="count", help="Increase verbosity.")
     parser.add_argument("--testing", action="store_true", help="Run app in simple test mode.")
     parser.add_argument("--loglevel", default=logging.INFO, help="Set logging output threshold level.")
-    # parser.add_argument("--profile", "-p", action="store_true", help="Profile app execution.")
-    # parser.add_argument("--print-profile", "-P", action="store_true", help="Print profiling statistics.")
-    # parser.add_argument("--profile-outputfn", default="scaffold_rotation.profile",
-    #                     help="Save profiling statistics to this file.")
+    
+    # Add the new argument here
+    parser.add_argument("--show-outdated-only", action="store_true",
+                        help="Only show repositories that are not up-to-date.")
 
-    parser.add_argument("--recursive", action="store_true",
-                        help="Scan the given basedirs recursively. This is the default.")
-    parser.add_argument("--no-recursive", action="store_false", dest="recursive",
-                        help="Disable recursive scanning. Any 'basedir' must be a git repository.")
+    parser.add_argument("--recursive", action="store_true", help="Scan the given basedirs recursively. This is the default.")
+    parser.add_argument("--no-recursive", action="store_false", dest="recursive", help="Disable recursive scanning.")
 
-    parser.add_argument("--followlinks", action="store_true",
-                        help="Follow symbolic links when walking/scanning the basedirs.")
+    parser.add_argument("--followlinks", action="store_true", help="Follow symbolic links when walking/scanning the basedirs.")
     parser.add_argument("--no-followlinks", action="store_false", dest="followlinks")
-
+    
     parser.add_argument("--ignore-untracked", action="store_true", help="Ignore untracked files.")
+    parser.add_argument("--check-fetch", action="store_true", help="Check if origin has changes that can be fetched.")
 
-    parser.add_argument("--check-fetch", action="store_true",
-                        help="Check if origin has changes that can be fetched. This is disabled by default, since "
-                        "it requires making a lot of remote requests which could be expensive.")
-
-    parser.add_argument("--wait", action="store_true",
-                        help="If changes are found, wait for input before continuing. This is typically used to "
-                        "prevent the command prompt from closing when executing as e.g. a scheduled task.")
-
-    parser.add_argument("--config", "-c",
-                        help="Instead of providing command line arguments at the command line, "
-                        "you can write arguments in a yaml file (as a dictionary).")
-
-    parser.add_argument("--dirfile", "-f", nargs="+",
-                        help="Instead of listing basedirs on the command line, you can list them in a file.")
-
-    parser.add_argument("--ignorefile",  # nargs="+",
-                        help="File with directories to ignore (glob patterns). "
-                        "Note: Basedirs are NEVER ignored by glob patterns in ignorefile.")
-
-    parser.add_argument("basedirs", nargs="*", metavar="basedir",
-                        help="One or more base directories to scan. A directory can be either (a) a git repository, "
-                        "or (b) a directory containing one or more git repositories. "
-                        "Basically it just scans recursively, considering all directories with a "
-                        "'.git' subfolder a git repository.")
+    parser.add_argument("--wait", action="store_true", help="If changes are found, wait for input before continuing.")
+    parser.add_argument("--config", "-c", help="Provide arguments in a yaml file (as a dictionary).")
+    parser.add_argument("--dirfile", "-f", nargs="+", help="List base directories in a file.")
+    parser.add_argument("--ignorefile", help="File with directories to ignore (glob patterns).")
+    parser.add_argument("basedirs", nargs="*", metavar="basedir", help="Base directories to scan for git repositories.")
 
     return parser, parser.parse_args(argv)
 
@@ -247,74 +218,85 @@ def check_repo_status(gitrepo, fetch=False, ignore_untracked=False):
     """
     Checks the status of git repository <gitrepo> and returns a tuple of
         (commit-status, push-status, fetch-status)
-    where commit status informs whether there are outstanding files not committed,
-    push-status informs whether the repository is ahead of origin,
-    and pull-status whether the repo is behind origin.
-    If an element is boolean True, it means there are something to do (e.g. changes to commit).
-    If all elements are boolean False, there are nothing to commit, push or fetch.
+    where:
+        - commit-status: List of uncommitted changes in the local working directory, or False if none.
+        - push-status: True if the local branch is ahead of the remote, False otherwise.
+        - fetch-status: True if there are changes to fetch from the remote, False otherwise.
     """
     try:
-        status_output = subprocess.check_output(["git", "status"], cwd=gitrepo)\
+        # Check for local changes (modified, added, deleted)
+        status_output = subprocess.check_output(["git", "status", "--porcelain"], cwd=gitrepo)\
                                   .decode().strip().split("\n")
     except subprocess.CalledProcessError as e:
-        logger.warning("Warning: failed to git status on %s: %s", gitrepo, e)
+        logger.warning("Warning: failed to get status on %s: %s", gitrepo, e)
         return (None, None, None)
-    #             False if "up-to-date" in status_output else status_output:
-    # Examples:
-    # Your branch is up-to-date with 'origin/master'.
-    # Your branch is ahead of 'origin/master' by 2 commits.
-    # OR NO INFO, if branch does not have any upstream set.
-    # Changes not staged for commit:  ()
-    status_regex = r"Your branch is (?P<status>.* (with|of)) (?P<branch>\'\w+\/\w+\') ?(?P<offset>.*)"
-    push_match = re.match(status_regex, status_output[1])
-    if push_match:
-        push_status = status_output[1] if "up-to-date" not in push_match.group('status') else False
-    else:
-        logger.debug("%s status[1] did not match standard status regex: %s", gitrepo, status_output[1])
-        push_status = push_match
 
-    # Alternatively, compare hashes: (github.com/natemara/git_check)
-    # local_hash=`git rev-parse --verify master`
-    # remote_hash=`git rev-parse --verify origin/master`
-
-    # Check for outstanding commits:
-    status_porcelain = subprocess.check_output(["git", "status", "--porcelain"], cwd=gitrepo)\
-                                 .decode().split("\n")
-    status_porcelain = [line for line in status_porcelain if line.strip()]
+    # Remove empty lines and filter out untracked files if ignore_untracked is set
+    status_output = [line for line in status_output if line.strip()]  # remove empty lines
     if ignore_untracked:
-        logger.debug("Removing lines for untracked files: %s", [line for line in status_porcelain if line[1] == "?"])
-        status_porcelain = [line for line in status_porcelain if line[1] != "?"]
+        status_output = [line for line in status_output if not line.startswith("??")]
 
-    # Check for incoming changes (from whatever is the branch's default upstream):
+    # If no local changes, set commitstat to False
+    has_local_changes = status_output if len(status_output) > 0 else False
+
+    # Check branch status (ahead, behind, up-to-date with origin)
+    try:
+        branch_status = subprocess.check_output(["git", "status", "-b", "--porcelain"], cwd=gitrepo)\
+                                  .decode().strip().split("\n")[0]
+        branch_ahead_behind = re.search(r'(\[ahead \d+\]|\[behind \d+\])', branch_status)
+    except subprocess.CalledProcessError as e:
+        logger.warning("Warning: failed to get branch status on %s: %s", gitrepo, e)
+        return (None, None, None)
+
+    # Determine if the repository is ahead or behind its upstream
+    is_behind_or_ahead = bool(branch_ahead_behind)
+
+    # Fetch status (check if there are changes to fetch from the remote)
     if fetch:
-        fetch_dryrun = subprocess.check_output(["git", "fetch", "--dry-run"], cwd=gitrepo)\
-                                 .decode().strip()
+        try:
+            fetch_status = subprocess.check_output(["git", "fetch", "--dry-run"], cwd=gitrepo)\
+                                      .decode().strip()
+            has_remote_changes = len(fetch_status) > 0
+        except subprocess.CalledProcessError as e:
+            logger.warning("Warning: failed to fetch on %s: %s", gitrepo, e)
+            has_remote_changes = False
     else:
-        fetch_dryrun = None
-    logger.debug("%s: (%s, %s, %s)", gitrepo, len(status_porcelain), push_status,
-                 fetch_dryrun and len(fetch_dryrun))
-    return (status_porcelain, push_status, fetch_dryrun)
+        has_remote_changes = False
+
+    # Return False if no changes detected at all
+    return (has_local_changes, is_behind_or_ahead, has_remote_changes)
+
 
 
 def print_report(gitrepo, commitstat, pushstat, fetchstat):
     logger.info("Git repository: %s" % gitrepo)
+    
+    # Handle push status (e.g., ahead of the remote branch)
     if pushstat:
         logger.info(pushstat)
+    
+    # Handle fetch status (e.g., changes on the remote branch)
     if fetchstat:
         logger.info("Outstanding fetches from origin: %s" % fetchstat)
+    
+    # Handle commit status (local changes)
     if commitstat:
         logger.warning("Outstanding commits:")
-        if len(commitstat) > 1:
-            for commit in commitstat:
-                logger.warning(commit)
+        if isinstance(commitstat, list):
+            for change in commitstat:
+                logger.warning(change)  # Print each file change (modified, deleted, etc.)
         else:
-            logger.warning("".join(commitstat))
+            logger.warning("Uncommitted changes exist.")
+    elif not pushstat and not fetchstat:
+        logger.info("Repository is fully up-to-date.")
+    
     print("\n")
 
 
 def main(argv=None):
     """Main driver."""
     args = process_args(None, argv)
+    
     if args['basedirs'] is None:
         args['basedirs'] = []
     if args['dirfile']:
@@ -333,8 +315,7 @@ def main(argv=None):
         logger.info("Basedir: %s" % dirs[0])
     exit_status = 0     # exit 0 = "No dirty repositories."
 
-    gitrepos = scan_gitrepos(args['basedirs'], ignoreglobs=ignoreglobs,
-                             followlinks=args.get("followlinks", False))
+    gitrepos = scan_gitrepos(args['basedirs'], ignoreglobs=ignoreglobs, followlinks=args.get("followlinks", False))
 
     if not gitrepos:
         logger.error("No git repositories found!")
@@ -345,13 +326,20 @@ def main(argv=None):
             check_repo_status(gitrepo,
                               fetch=args.get("check_fetch", False),
                               ignore_untracked=args.get("ignore_untracked"))
-        if any(status_tup):
+        
+        # If --show-outdated-only is used, only print if there are actual changes
+        if args.get("show_outdated_only"):
+            # Only show the repo if there are changes (uncommitted files, push status, or fetchable changes)
+            if commitstat or pushstat or fetchstat:  # More precise check for changes
+                print_report(gitrepo, commitstat, pushstat, fetchstat)
+                exit_status = 1  # Mark that we found outdated repos
+        else:
+            # Print all repos if --show-outdated-only is not set
             print_report(gitrepo, commitstat, pushstat, fetchstat)
-            exit_status = 1  # exit 1 = "dirty repositories found."
+
     if exit_status > 0 and args.get('wait'):
         input("\nPress ENTER to continue... ")
     sys.exit(exit_status)
-
 
 def test():
     """Primitive test. """
