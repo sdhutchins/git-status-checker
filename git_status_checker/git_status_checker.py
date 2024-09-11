@@ -43,8 +43,6 @@ import glob
 import argparse
 import subprocess
 from fnmatch import fnmatch
-# from collections import defaultdict
-# from datetime import datetime, timedelta
 from logzero import LogFormatter, setup_logger, logging
 
 
