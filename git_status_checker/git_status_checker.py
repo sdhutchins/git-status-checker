@@ -38,6 +38,7 @@ Python git bindings (not used, but still worth mentioning):
 import sys
 import os
 import re
+import json
 import yaml
 import glob
 import argparse
@@ -75,6 +76,7 @@ def parse_args(argv=None):
     parser.add_argument("--check-fetch", action="store_true", help="Check if origin has changes that can be fetched.")
 
     parser.add_argument("--wait", action="store_true", help="If changes are found, wait for input before continuing.")
+    parser.add_argument("--json", action="store_true", help="Output results as JSON instead of logging.")
     parser.add_argument("--config", "-c", help="Provide arguments in a yaml file (as a dictionary).")
     parser.add_argument("--dirfile", "-f", nargs="+", help="List base directories in a file.")
     parser.add_argument("--ignorefile", help="File with directories to ignore (glob patterns).")
@@ -267,6 +269,80 @@ def check_repo_status(gitrepo, fetch=False, ignore_untracked=False):
     return (has_local_changes, is_behind_or_ahead, has_remote_changes)
 
 
+def check_repo_status_detailed(gitrepo, fetch=False, ignore_untracked=False):
+    """
+    Checks the status of git repository and returns detailed status information.
+    
+    Returns a dictionary with:
+        - path: Repository path
+        - local_changes: List of uncommitted changes, or empty list if none
+        - ahead: Boolean indicating if local branch is ahead of remote
+        - behind: Boolean indicating if local branch is behind remote
+        - has_remote_changes: Boolean indicating if there are changes to fetch
+        - up_to_date: Boolean indicating if repository is fully up-to-date
+        - error: Error message if status check failed, None otherwise
+    """
+    result = {
+        "path": gitrepo,
+        "local_changes": [],
+        "ahead": False,
+        "behind": False,
+        "has_remote_changes": False,
+        "up_to_date": True,
+        "error": None
+    }
+    
+    try:
+        # Check for local changes (modified, added, deleted)
+        status_output = subprocess.check_output(["git", "status", "--porcelain"], cwd=gitrepo)\
+                                  .decode().strip().split("\n")
+    except subprocess.CalledProcessError as e:
+        result["error"] = str(e)
+        return result
+
+    # Remove empty lines and filter out untracked files if ignore_untracked is set
+    status_output = [line for line in status_output if line.strip()]
+    if ignore_untracked:
+        status_output = [line for line in status_output if not line.startswith("??")]
+
+    result["local_changes"] = status_output
+
+    # Check branch status (ahead, behind, up-to-date with origin)
+    try:
+        branch_status = subprocess.check_output(["git", "status", "-b", "--porcelain"], cwd=gitrepo)\
+                                  .decode().strip().split("\n")[0]
+        ahead_match = re.search(r'\[ahead (\d+)\]', branch_status)
+        behind_match = re.search(r'\[behind (\d+)\]', branch_status)
+        
+        if ahead_match:
+            result["ahead"] = True
+        if behind_match:
+            result["behind"] = True
+    except subprocess.CalledProcessError as e:
+        result["error"] = str(e)
+        return result
+
+    # Fetch status (check if there are changes to fetch from the remote)
+    if fetch:
+        try:
+            fetch_status = subprocess.check_output(["git", "fetch", "--dry-run"], cwd=gitrepo)\
+                                      .decode().strip()
+            result["has_remote_changes"] = len(fetch_status) > 0
+        except subprocess.CalledProcessError as e:
+            result["error"] = str(e)
+            return result
+
+    # Determine if repository is up-to-date
+    result["up_to_date"] = (
+        len(result["local_changes"]) == 0 and
+        not result["ahead"] and
+        not result["behind"] and
+        not result["has_remote_changes"]
+    )
+
+    return result
+
+
 
 def print_report(gitrepo, commitstat, pushstat, fetchstat):
     logger.info("Git repository: %s" % gitrepo)
@@ -321,21 +397,49 @@ def main(argv=None):
         logger.error("No git repositories found!")
         sys.exit(127)   # exit 127 = "Error: No repositories found."
 
-    for gitrepo in gitrepos:
-        (commitstat, pushstat, fetchstat) = status_tup = \
-            check_repo_status(gitrepo,
-                              fetch=args.get("check_fetch", False),
-                              ignore_untracked=args.get("ignore_untracked"))
+    # JSON output mode
+    if args.get("json"):
+        repositories = []
+        for gitrepo in gitrepos:
+            repo_status = check_repo_status_detailed(
+                gitrepo,
+                fetch=args.get("check_fetch", False),
+                ignore_untracked=args.get("ignore_untracked")
+            )
+            
+            # Filter by --show-outdated-only if set
+            if args.get("show_outdated_only"):
+                if not repo_status["up_to_date"]:
+                    repositories.append(repo_status)
+                    exit_status = 1
+            else:
+                repositories.append(repo_status)
+                if not repo_status["up_to_date"]:
+                    exit_status = 1
         
-        # If --show-outdated-only is used, only print if there are actual changes
-        if args.get("show_outdated_only"):
-            # Only show the repo if there are changes (uncommitted files, push status, or fetchable changes)
-            if commitstat or pushstat or fetchstat:  # More precise check for changes
+        output = {
+            "repositories": repositories,
+            "total": len(repositories),
+            "outdated": sum(1 for r in repositories if not r["up_to_date"])
+        }
+        print(json.dumps(output, indent=2))
+    else:
+        # Original logging output mode
+        for gitrepo in gitrepos:
+            (commitstat, pushstat, fetchstat) = status_tup = \
+                check_repo_status(gitrepo,
+                                  fetch=args.get("check_fetch", False),
+                                  ignore_untracked=args.get("ignore_untracked"))
+            
+            # If --show-outdated-only is used, only print if there are actual changes
+            if args.get("show_outdated_only"):
+                # Only show the repo if there are changes (uncommitted files, push status, or fetchable changes)
+                if commitstat or pushstat or fetchstat:  # More precise check for changes
+                    print_report(gitrepo, commitstat, pushstat, fetchstat)
+                    exit_status = 1  # Mark that we found outdated repos
+            else:
+                # Print all repos if --show-outdated-only is not set
                 print_report(gitrepo, commitstat, pushstat, fetchstat)
-                exit_status = 1  # Mark that we found outdated repos
-        else:
-            # Print all repos if --show-outdated-only is not set
-            print_report(gitrepo, commitstat, pushstat, fetchstat)
 
     if exit_status > 0 and args.get('wait'):
         input("\nPress ENTER to continue... ")
