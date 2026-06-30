@@ -6,9 +6,22 @@ Most of this was thankfully created by [@scholer](https://github.com/scholer). I
 
 ## Installation
 
-`pip install git+https://github.com/sdhutchins/git-status-checker.git` will place `git-status-checker` in a python executables folder that should be in your path.
+```bash
+pip install git+https://github.com/sdhutchins/git-status-checker.git
+```
+
+This will place `git-status-checker` in a python executables folder that
+should be in your path.
 
 You can also install this by cloning this repository and installing it using `pip install .` in the top level directory of the repository.
+
+If you are using `uv`, create the virtual environment with seed packages so `pip` is available inside the venv:
+
+```bash
+uv venv --seed venv
+source venv/bin/activate
+python -m pip install .
+```
 
 ## What it does
 
@@ -19,7 +32,7 @@ You can also install this by cloning this repository and installing it using `pi
 
 1. Produce a list of places (base-dirs) where you have git repositories and save it to a file. It might look something like below...
 
-   ```
+   ```console
    ~/Dev/src-repos
    ~/Documents/Projects
    ~/Documents/Personal_stuff/My_project_A
@@ -34,11 +47,9 @@ repositories with outstanding commits or that can be pushed or fetched to/from o
 
 ```console
 $ git-status-checker -h
-usage: git-status-checker [-h] [--verbose] [--testing] [--loglevel LOGLEVEL]
-                          [--show-outdated-only] [--recursive] [--no-recursive]
-                          [--followlinks] [--no-followlinks] [--ignore-untracked]
-                          [--check-fetch] [--wait] [--json] [--config CONFIG]
-                          [--dirfile DIRFILE [DIRFILE ...]] [--ignorefile IGNOREFILE]
+usage: git-status-checker [-h] [--verbose] [--testing] [--loglevel LOGLEVEL] [--show-outdated-only] [--recursive]
+                          [--no-recursive] [--followlinks] [--no-followlinks] [--ignore-untracked] [--check-fetch] [--wait]
+                          [--json] [--config CONFIG] [--dirfile DIRFILE [DIRFILE ...]] [--ignorefile IGNOREFILE]
                           [basedir ...]
 
 Git status checker script.
@@ -83,6 +94,7 @@ The script provides for a range of choices based on how you use it:
 You can use a YAML configuration file to specify command-line arguments instead of typing them each time. Create a YAML file with your preferred options:
 
 Example `config.yaml`:
+
 ```yaml
 basedirs:
   - ~/Dev/src-repos
@@ -94,6 +106,7 @@ json: false
 ```
 
 Then run:
+
 ```bash
 git-status-checker --config config.yaml
 ```
@@ -105,9 +118,12 @@ Command-line arguments will override any values specified in the config file. Th
 Use the `--json` flag to output results in JSON format instead of logging messages. This is useful for programmatic processing or integration with other tools.
 
 Example:
+
 ```bash
 git-status-checker --json ~/Dev/src-repos
 ```
+
+When `--json` is enabled, the JSON payload is written to `stdout` and log messages are written to `stderr`.
 
 The JSON output includes:
 * `repositories`: Array of repository status objects, each containing:
